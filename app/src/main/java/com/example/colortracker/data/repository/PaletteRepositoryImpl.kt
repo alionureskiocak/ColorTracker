@@ -18,6 +18,7 @@ class PaletteRepositoryImpl @Inject constructor()
 
         val palette = Palette.from(bitmap).maximumColorCount(16).generate()
         val swatches = palette.swatches
+        val dominantColor = palette.getDominantColor(0xFFFFFF)
         val totalPopulation = swatches.sumOf { it.population.toLong() }.toDouble().coerceAtLeast(1.0)
 
         swatches
