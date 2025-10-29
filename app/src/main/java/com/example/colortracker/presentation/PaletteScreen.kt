@@ -11,9 +11,13 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -21,6 +25,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,23 +38,24 @@ fun PaletteScreen(viewModel: PaletteViewModel = hiltViewModel()) {
 
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    var currentBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
-    // 📷 Galeri Seçici
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             val bitmap = uriToBitmap(context, it) ?: return@let
+            currentBitmap = bitmap
             viewModel.analyzeBitmap(bitmap)
         }
     }
 
-    // 📸 Kamera Preview (izin isteğiyle)
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
         if (bitmap != null) {
             viewModel.analyzeBitmap(bitmap)
+            currentBitmap = bitmap
         } else {
             Toast.makeText(context, "Kamera sonucu alınamadı.", Toast.LENGTH_SHORT).show()
         }
@@ -59,35 +65,18 @@ fun PaletteScreen(viewModel: PaletteViewModel = hiltViewModel()) {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             cameraLauncher.launch(null)
         } else {
             Toast.makeText(context, "Kamera izni gerekli.", Toast.LENGTH_SHORT).show()
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(16.dp),
+            contentAlignment = Alignment.TopCenter
+
     ) {
         Row {
             Button(onClick = { galleryLauncher.launch("image/*") }) {
@@ -100,6 +89,7 @@ fun PaletteScreen(viewModel: PaletteViewModel = hiltViewModel()) {
                 Text("Kameradan çek")
             }
         }
+        Spacer(modifier = Modifier.height(16.dp))
 
         if (state.isLoading) {
             CircularProgressIndicator(modifier = Modifier.padding(16.dp))
@@ -107,11 +97,20 @@ fun PaletteScreen(viewModel: PaletteViewModel = hiltViewModel()) {
 
         state.error?.let { Text("Hata: $it", color = Color.Red) }
 
-        LazyRow(modifier = Modifier.padding(top = 16.dp)) {
-            items(state.colors) { sw ->
-                ColorSwatchItem(sw)
+        Column {
+            currentBitmap?.let {
+                Image(bitmap = currentBitmap!!.asImageBitmap(), contentDescription = null)
+            }
+
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                modifier = Modifier.padding(top = 16.dp)) {
+                items(state.colors) { sw ->
+                    ColorSwatchItem(sw)
+                }
             }
         }
+
     }
 }
 
@@ -163,32 +162,5 @@ fun uriToBitmap(context: Context, uri: Uri): Bitmap? {
     } catch (e: Exception) {
         e.printStackTrace()
         null
-    }
-}
-
-// 📷 Basit kamera testi için
-@Composable
-fun CameraTest() {
-    val context = LocalContext.current
-
-    val cameraLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        Log.d("CameraTest", "Bitmap result: $bitmap")
-        Toast.makeText(context, if (bitmap != null) "Foto alındı!" else "Bitmap null!", Toast.LENGTH_SHORT).show()
-    }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            cameraLauncher.launch(null)
-        } else {
-            Toast.makeText(context, "Kamera izni gerekli", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    Button(onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) }) {
-        Text("Kameradan çek (test)")
     }
 }
