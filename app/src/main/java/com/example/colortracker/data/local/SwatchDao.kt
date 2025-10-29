@@ -16,6 +16,10 @@ interface SwatchDao {
     @Delete
     suspend fun deleteSwatch(colorEntity: ColorEntity)
 
+    @Query("SELECT * FROM ColorEntity")
+    fun getAllSwatch() : List<ColorEntity>
+
     @Query("DELETE  FROM ColorEntity")
     suspend fun clearAll()
+
 }

@@ -2,6 +2,8 @@ package com.example.colortracker.data.repository
 
 import android.graphics.Bitmap
 import androidx.palette.graphics.Palette
+import com.example.colortracker.data.local.SwatchDao
+import com.example.colortracker.domain.model.ColorEntity
 import com.example.colortracker.domain.model.ColorSwatchInfo
 import com.example.colortracker.domain.repository.PaletteRepository
 import kotlinx.coroutines.Dispatchers
@@ -11,7 +13,9 @@ import kotlin.div
 import kotlin.text.toDouble
 import kotlin.text.toLong
 
-class PaletteRepositoryImpl @Inject constructor()
+class PaletteRepositoryImpl @Inject constructor(
+    private val dao: SwatchDao
+)
     : PaletteRepository {
     override suspend fun analyzeBitmap(bitmap: Bitmap): List<ColorSwatchInfo> = withContext(
         Dispatchers.Default) {
@@ -33,6 +37,22 @@ class PaletteRepositoryImpl @Inject constructor()
                     titleTextColor = sw.titleTextColor
                 )
             }
+    }
+
+    override suspend fun insertSwatch(colorEntity: ColorEntity) {
+        dao.insertSwatch(colorEntity)
+    }
+
+    override suspend fun deleteSwatch(colorEntity: ColorEntity) {
+        dao.deleteSwatch(colorEntity)
+    }
+
+    override fun getAllSwatch(): List<ColorEntity> {
+        return dao.getAllSwatch()
+    }
+
+    override suspend fun clearAll() {
+       dao.clearAll()
     }
 
 }
