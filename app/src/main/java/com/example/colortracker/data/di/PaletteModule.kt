@@ -19,10 +19,7 @@ import javax.inject.Singleton
 object PaletteModule {
 
     @Singleton @Provides
-    fun providePaletteRepository() : PaletteRepository = PaletteRepositoryImpl()
-
-    @Singleton @Provides
-    fun provideSwatchDatabase(@ApplicationContext context : Context) : RoomDatabase{
+    fun provideSwatchDatabase(@ApplicationContext context : Context) : SwatchDatabase{
         return Room.databaseBuilder(
             context,
             SwatchDatabase::class.java,
@@ -32,4 +29,8 @@ object PaletteModule {
 
     @Singleton @Provides
     fun provideSwatchDao(db : SwatchDatabase) = db.swatchDao()
+
+    @Singleton @Provides
+    fun providePaletteRepository(dao : SwatchDao) : PaletteRepository =
+        PaletteRepositoryImpl(dao)
 }

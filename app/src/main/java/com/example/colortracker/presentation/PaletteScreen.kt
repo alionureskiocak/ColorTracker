@@ -7,18 +7,17 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
-import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,15 +37,25 @@ import kotlin.math.roundToInt
 fun PaletteScreen(viewModel: PaletteViewModel = hiltViewModel()) {
 
     val state by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
-    var currentBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    val error = state.error
+    val colorEntites = state.colorEntities
+    val currentBitmap = state.bitmap
+    val swatches = state.swatches
 
+    LaunchedEffect(currentBitmap) { // resim seçildiğinde room'a eklesin diye
+        if (currentBitmap!=null){
+            viewModel.insertSwatch(currentBitmap,swatches)
+        }
+    }
+
+
+    val context = LocalContext.current
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             val bitmap = uriToBitmap(context, it) ?: return@let
-            currentBitmap = bitmap
+            viewModel.updateBitmap(bitmap)
             viewModel.analyzeBitmap(bitmap)
         }
     }
@@ -54,8 +64,8 @@ fun PaletteScreen(viewModel: PaletteViewModel = hiltViewModel()) {
         ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
         if (bitmap != null) {
+            viewModel.updateBitmap(bitmap)
             viewModel.analyzeBitmap(bitmap)
-            currentBitmap = bitmap
         } else {
             Toast.makeText(context, "Kamera sonucu alınamadı.", Toast.LENGTH_SHORT).show()
         }
@@ -78,39 +88,55 @@ fun PaletteScreen(viewModel: PaletteViewModel = hiltViewModel()) {
             contentAlignment = Alignment.TopCenter
 
     ) {
-        Row {
-            Button(onClick = { galleryLauncher.launch("image/*") }) {
-                Text("Galeriden seç")
-            }
-            Spacer(Modifier.width(8.dp))
-            Button(onClick = {
-                permissionLauncher.launch(Manifest.permission.CAMERA)
-            }) {
-                Text("Kameradan çek")
-            }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
+        state.error?.let { Text("Hata: $it", color = Color.Red) }
+
 
         if (state.isLoading) {
             CircularProgressIndicator(modifier = Modifier.padding(16.dp))
         }
+        else if(currentBitmap==null){
+            ChoiceScreen(galleryLauncher,permissionLauncher)
+        }
+        else{
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                currentBitmap.let {
+                    Image(bitmap = currentBitmap.asImageBitmap(), contentDescription = null,
+                        modifier = Modifier.size(200.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
 
-        state.error?.let { Text("Hata: $it", color = Color.Red) }
-
-        Column {
-            currentBitmap?.let {
-                Image(bitmap = currentBitmap!!.asImageBitmap(), contentDescription = null)
-            }
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                modifier = Modifier.padding(top = 16.dp)) {
-                items(state.colors) { sw ->
-                    ColorSwatchItem(sw)
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier.padding(top = 16.dp)) {
+                    items(state.swatches) { sw ->
+                        ColorSwatchItem(sw)
+                    }
                 }
             }
         }
+    }
+}
 
+@Composable
+fun ChoiceScreen(
+    galleryLauncher : ManagedActivityResultLauncher<String, Uri?>,
+    permissionLauncher : ManagedActivityResultLauncher<String, Boolean>
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Button(onClick = { galleryLauncher.launch("image/*") }) {
+            Text("Galeriden seç")
+        }
+        Spacer(Modifier.width(8.dp))
+        Button(onClick = {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }) {
+            Text("Kameradan çek")
+        }
     }
 }
 
@@ -146,18 +172,13 @@ fun ColorSwatchItem(sw: ColorSwatchInfo) {
     }
 }
 
-// 🔄 URI → Bitmap dönüştürücü
+
 fun uriToBitmap(context: Context, uri: Uri): Bitmap? {
     return try {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val src = ImageDecoder.createSource(context.contentResolver, uri)
-            ImageDecoder.decodeBitmap(src) { decoder, _, _ ->
-                decoder.isMutableRequired = false
-                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-            }
-        } else {
-            @Suppress("DEPRECATION")
-            MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+        val src = ImageDecoder.createSource(context.contentResolver, uri)
+        ImageDecoder.decodeBitmap(src) { decoder, _, _ ->
+            decoder.isMutableRequired = false
+            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
         }
     } catch (e: Exception) {
         e.printStackTrace()

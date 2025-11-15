@@ -1,6 +1,9 @@
 package com.example.colortracker.presentation
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.util.Log
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.colortracker.domain.model.ColorEntity
@@ -8,16 +11,20 @@ import com.example.colortracker.domain.model.ColorSwatchInfo
 import com.example.colortracker.domain.repository.PaletteRepository
 import com.example.colortracker.domain.use_case.AnalyzeImageColorUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
 class PaletteViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val analyzeImageColorUseCase: AnalyzeImageColorUseCase,
     private val repository: PaletteRepository
 ) : ViewModel(){
@@ -26,24 +33,30 @@ class PaletteViewModel @Inject constructor(
     val uiState : StateFlow<PaletteUiState> = _uiState.asStateFlow()
 
     fun analyzeBitmap(bitmap : Bitmap){
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true,error = null) }
+            _uiState.update { it.copy(isLoading = true,error = null, bitmap = bitmap) }
             try {
                 val colors = analyzeImageColorUseCase(bitmap)
-                _uiState.update { it.copy(isLoading = false,colors = colors) }
+                _uiState.update { it.copy(isLoading = false,swatches = colors) }
             }catch (e: Exception){
                 _uiState.update { it.copy(isLoading = false,error = e.localizedMessage?:"Error!") }
             }
         }
     }
 
-    fun insertSwatch(bitmap: Bitmap,swatch : ColorSwatchInfo){
-        viewModelScope.launch {
-            val stream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
-            val bytes = stream.toByteArray()
+    init {
+        getAllSwatch()
+    }
+
+    fun insertSwatch( bitmap: Bitmap, swatches : List<ColorSwatchInfo>){
+        viewModelScope.launch(Dispatchers.IO) {
+            val file = File(context.filesDir, "swatch_${System.currentTimeMillis()}.png")
+            file.outputStream().use {
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+            }
             repository.insertSwatch(
-                ColorEntity(swatch,bytes)
+                ColorEntity(swatches,file.absolutePath)
             )
         }
     }
@@ -62,16 +75,29 @@ class PaletteViewModel @Inject constructor(
     }
 
     fun getAllSwatch(){
-        val colorEntities = repository.getAllSwatch()
-        _uiState.update {
-            it.copy(colorEntities = colorEntities)
+        viewModelScope.launch {
+            val colorEntities = repository.getAllSwatch()
+            _uiState.update {
+                it.copy(colorEntities = colorEntities)
+            }
         }
+
+    }
+
+    fun updateBitmap(bitmap : Bitmap){
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(bitmap = bitmap)
+            }
+        }
+
     }
 }
 
 data class PaletteUiState(
     val isLoading : Boolean = false,
-    val colors : List<ColorSwatchInfo> = emptyList(),
+    val swatches : List<ColorSwatchInfo> = emptyList(),
+    val bitmap : Bitmap? = null,
     val colorEntities : List<ColorEntity> = emptyList(),
     val error : String? = null
 )

@@ -6,6 +6,7 @@ import com.example.colortracker.data.local.SwatchDao
 import com.example.colortracker.domain.model.ColorEntity
 import com.example.colortracker.domain.model.ColorSwatchInfo
 import com.example.colortracker.domain.repository.PaletteRepository
+import dagger.hilt.android.scopes.ViewModelScoped
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -13,6 +14,7 @@ import kotlin.div
 import kotlin.text.toDouble
 import kotlin.text.toLong
 
+@ViewModelScoped
 class PaletteRepositoryImpl @Inject constructor(
     private val dao: SwatchDao
 )
@@ -47,7 +49,7 @@ class PaletteRepositoryImpl @Inject constructor(
         dao.deleteSwatch(colorEntity)
     }
 
-    override fun getAllSwatch(): List<ColorEntity> {
+    override suspend fun getAllSwatch(): List<ColorEntity> {
         return dao.getAllSwatch()
     }
 

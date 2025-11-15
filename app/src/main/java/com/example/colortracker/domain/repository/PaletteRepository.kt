@@ -12,7 +12,7 @@ interface PaletteRepository {
 
     suspend fun deleteSwatch(colorEntity: ColorEntity)
 
-    fun getAllSwatch() : List<ColorEntity>
+    suspend fun getAllSwatch() : List<ColorEntity>
 
     suspend fun clearAll()
 

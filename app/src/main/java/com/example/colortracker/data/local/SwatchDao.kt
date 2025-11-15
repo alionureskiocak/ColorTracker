@@ -5,7 +5,6 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import com.example.colortracker.domain.model.ColorEntity
-import com.example.colortracker.domain.model.ColorSwatchInfo
 
 @Dao
 interface SwatchDao {
@@ -17,7 +16,7 @@ interface SwatchDao {
     suspend fun deleteSwatch(colorEntity: ColorEntity)
 
     @Query("SELECT * FROM ColorEntity")
-    fun getAllSwatch() : List<ColorEntity>
+    suspend fun getAllSwatch() : List<ColorEntity>
 
     @Query("DELETE  FROM ColorEntity")
     suspend fun clearAll()
