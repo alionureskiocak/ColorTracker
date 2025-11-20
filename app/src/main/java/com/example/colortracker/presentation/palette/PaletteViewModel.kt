@@ -1,9 +1,7 @@
-package com.example.colortracker.presentation
+package com.example.colortracker.presentation.palette
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.util.Log
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.colortracker.domain.model.ColorEntity
@@ -18,7 +16,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
 import java.io.File
 import javax.inject.Inject
 
@@ -39,6 +36,7 @@ class PaletteViewModel @Inject constructor(
             try {
                 val colors = analyzeImageColorUseCase(bitmap)
                 _uiState.update { it.copy(isLoading = false,swatches = colors) }
+                insertSwatch(bitmap,colors)////////////
             }catch (e: Exception){
                 _uiState.update { it.copy(isLoading = false,error = e.localizedMessage?:"Error!") }
             }
@@ -60,6 +58,8 @@ class PaletteViewModel @Inject constructor(
             )
         }
     }
+
+
 
     fun deleteSwatch(colorEntity: ColorEntity){
         viewModelScope.launch {
@@ -101,3 +101,4 @@ data class PaletteUiState(
     val colorEntities : List<ColorEntity> = emptyList(),
     val error : String? = null
 )
+

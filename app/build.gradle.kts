@@ -96,6 +96,8 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.10.3")
     implementation ("co.yml:ycharts:2.1.0")
     implementation("androidx.palette:palette-ktx:1.0.0")
+    implementation("androidx.compose.material:material-icons-extended:<compose_version>")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

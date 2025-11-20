@@ -8,7 +8,7 @@ import androidx.room.PrimaryKey
 @Entity
 data class ColorEntity(
     val swatches : List<ColorSwatchInfo>,
-    val colorPath : String
+    val colorPath : String,
 ){
     @PrimaryKey(autoGenerate = true)
     var id : Int = 0

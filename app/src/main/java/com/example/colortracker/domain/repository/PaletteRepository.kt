@@ -3,6 +3,8 @@ package com.example.colortracker.domain.repository
 import android.graphics.Bitmap
 import com.example.colortracker.domain.model.ColorEntity
 import com.example.colortracker.domain.model.ColorSwatchInfo
+import com.example.colortracker.domain.model.FavoriteSwatch
+import kotlinx.coroutines.flow.Flow
 
 interface PaletteRepository {
 
@@ -15,5 +17,11 @@ interface PaletteRepository {
     suspend fun getAllSwatch() : List<ColorEntity>
 
     suspend fun clearAll()
+
+    suspend fun addFavorites(favoriteSwatch: FavoriteSwatch)
+
+    suspend fun deleteFavorites(hex : String)
+
+    suspend fun getFavorites() : Flow<List<FavoriteSwatch>>
 
 }

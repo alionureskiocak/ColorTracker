@@ -1,24 +1,20 @@
-package com.example.colortracker.presentation
+package com.example.colortracker.presentation.palette
 
 import android.Manifest
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,27 +23,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.colortracker.domain.model.ColorSwatchInfo
-import kotlin.math.roundToInt
+import androidx.navigation.NavHostController
+import com.example.colortracker.domain.model.FavoriteSwatch
+import com.example.colortracker.presentation.composables.ColorSwatchItem
+import com.example.colortracker.presentation.favorites.FavoriteViewModel
+import java.io.File
 
 @Composable
-fun PaletteScreen(viewModel: PaletteViewModel = hiltViewModel()) {
+fun PaletteScreen(navController: NavHostController, viewModel: PaletteViewModel = hiltViewModel()) {
 
     val state by viewModel.uiState.collectAsState()
     val error = state.error
     val colorEntites = state.colorEntities
     val currentBitmap = state.bitmap
     val swatches = state.swatches
-
-    LaunchedEffect(currentBitmap) { // resim seçildiğinde room'a eklesin diye
-        if (currentBitmap!=null){
-            viewModel.insertSwatch(currentBitmap,swatches)
-        }
-    }
-
+    val favoritesViewModel : FavoriteViewModel = hiltViewModel()
+    val favoritesList by favoritesViewModel.favoritesList.collectAsState()
 
     val context = LocalContext.current
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -60,22 +54,27 @@ fun PaletteScreen(viewModel: PaletteViewModel = hiltViewModel()) {
         }
     }
 
+    val photoUri = remember {
+        val file = File(context.externalCacheDir, "temp_photo.jpg")
+        FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+    }
+
     val cameraLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        if (bitmap != null) {
-            viewModel.updateBitmap(bitmap)
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            val bitmap = uriToBitmap(context, photoUri)
+            viewModel.updateBitmap(bitmap!!)
             viewModel.analyzeBitmap(bitmap)
-        } else {
-            Toast.makeText(context, "Kamera sonucu alınamadı.", Toast.LENGTH_SHORT).show()
         }
     }
+
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            cameraLauncher.launch(null)
+            cameraLauncher.launch(photoUri)
         } else {
             Toast.makeText(context, "Kamera izni gerekli.", Toast.LENGTH_SHORT).show()
         }
@@ -85,7 +84,7 @@ fun PaletteScreen(viewModel: PaletteViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-            contentAlignment = Alignment.TopCenter
+        contentAlignment = Alignment.TopCenter
 
     ) {
         state.error?.let { Text("Hata: $it", color = Color.Red) }
@@ -114,7 +113,18 @@ fun PaletteScreen(viewModel: PaletteViewModel = hiltViewModel()) {
                     columns = GridCells.Fixed(3),
                     modifier = Modifier.padding(top = 16.dp)) {
                     items(state.swatches) { sw ->
-                        ColorSwatchItem(sw)
+                        val isFavorite = favoritesList.any{it.hex == sw.hex}
+                        ColorSwatchItem(navController,sw,isFavorite){
+                            val fs = FavoriteSwatch(
+                                hex = sw.hex,
+                                rgb = sw.rgb,
+                                percentage = sw.percentage,
+                                titleTextColor = sw.titleTextColor,
+                                bodyTextColor = sw.bodyTextColor,
+                                population = sw.population
+                            )
+                            favoritesViewModel.onPress(fs)
+                        }
                     }
                 }
             }
@@ -139,39 +149,6 @@ fun ChoiceScreen(
         }
     }
 }
-
-@Composable
-fun ColorSwatchItem(sw: ColorSwatchInfo) {
-    Card(
-        modifier = Modifier
-            .size(120.dp)
-            .padding(8.dp),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(sw.rgb))
-        ) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(8.dp)
-            ) {
-                Text(
-                    text = sw.hex,
-                    color = Color(sw.titleTextColor),
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "${(sw.percentage * 100).roundToInt()}%",
-                    color = Color(sw.bodyTextColor)
-                )
-            }
-        }
-    }
-}
-
 
 fun uriToBitmap(context: Context, uri: Uri): Bitmap? {
     return try {

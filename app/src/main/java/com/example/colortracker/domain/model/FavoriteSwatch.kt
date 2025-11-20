@@ -4,14 +4,13 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity
-data class ColorSwatchInfo(
+data class FavoriteSwatch(
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
     val rgb: Int,
     val hex: String,
     val population: Int,
     val percentage: Double,
     val titleTextColor: Int,
-    val bodyTextColor: Int,
-){
-    @PrimaryKey(autoGenerate = true)
-    var id : Int = 0
-}
+    val bodyTextColor: Int
+)
