@@ -50,7 +50,8 @@ fun FavoriteSwatchItem(
     sw: FavoriteSwatch,
     isFavorite : Boolean,
     onAddToFavorites: (FavoriteSwatch) -> Unit = {},
-    onDismiss : () -> Unit = {}
+    onDismiss : () -> Unit = {},
+    onFullScreen : (FavoriteSwatch) -> Unit
 
     ) {
     val context = LocalContext.current
@@ -115,6 +116,9 @@ fun FavoriteSwatchItem(
                                 Color(sw.rgb),
                                 RoundedCornerShape(8.dp)
                             )
+                            .clickable{
+                                onFullScreen(sw)
+                            }
                     )
 
                     Spacer(modifier = Modifier.width(16.dp))

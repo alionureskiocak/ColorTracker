@@ -92,6 +92,17 @@ class PaletteViewModel @Inject constructor(
         }
 
     }
+
+    fun resetState() {
+        _uiState.update {
+            it.copy(
+                bitmap = null,        // null olması EmptyStateScreen'i tetikler
+                swatches = emptyList(),
+                error = null,
+                isLoading = false
+            )
+        }
+    }
 }
 
 data class PaletteUiState(

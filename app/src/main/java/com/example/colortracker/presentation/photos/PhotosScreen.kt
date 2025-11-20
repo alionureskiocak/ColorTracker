@@ -54,7 +54,7 @@ fun PhotosScreen(navController : NavHostController, viewModel: PhotosViewModel =
     if (fullScreenSwatch != null) {
         FullScreenColorDialog(
             sw = fullScreenSwatch!!,
-            onDismiss = { fullScreenSwatch = null } // Geri tuşu veya tıklama ile kapatır
+            onDismiss = { fullScreenSwatch = null }
         )
     }
 
@@ -65,7 +65,6 @@ fun PhotosScreen(navController : NavHostController, viewModel: PhotosViewModel =
             entity = currentEntity,
             favoritesList = favoritesList,
             favoriteViewModel = favoritesViewModel,
-            // Callback'i burada yakalıyoruz
             onFullScreen = { swatch ->
                 fullScreenSwatch = swatch
             }
@@ -87,7 +86,7 @@ fun PhotosScreen(navController : NavHostController, viewModel: PhotosViewModel =
     }
 }
 
-// DialogScreen imzasını güncelleyin ve parametreyi ColorSwatchItem'a iletin
+
 @Composable
 fun DialogScreen(
     navController : NavHostController,
@@ -95,7 +94,7 @@ fun DialogScreen(
     entity: ColorEntity,
     favoritesList : List<FavoriteSwatch>,
     favoriteViewModel: FavoriteViewModel,
-    onFullScreen: (ColorSwatchInfo) -> Unit // Yeni parametre
+    onFullScreen: (ColorSwatchInfo) -> Unit
 ) {
     AlertDialog(
         onDismissRequest = { viewModel.onDismiss() },
@@ -106,7 +105,7 @@ fun DialogScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // ... (Resim Box kodlarınız aynı kalacak) ...
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -135,7 +134,7 @@ fun DialogScreen(
                             sw = sw,
                             isFavorite = isFavorite,
                             onAddToFavorites = {
-                                // Favori ekleme kodlarınız aynen kalıyor
+
                                 val fs = FavoriteSwatch(
                                     hex = sw.hex,
                                     rgb = sw.rgb,
@@ -146,7 +145,6 @@ fun DialogScreen(
                                 )
                                 favoriteViewModel.onPress(fs)
                             },
-                            // Tıklamayı yukarı (PhotosScreen'e) iletiyoruz
                             onFullScreen = { selectedSwatch ->
                                 onFullScreen(selectedSwatch)
                             }
@@ -172,14 +170,12 @@ fun DialogScreen(
     )
 }
 
-// Yeni Tam Ekran Dialog Composable'ı
-// Bu yapı mevcut pencerelerin üzerine tam ekran olarak açılacaktır.
 @Composable
 fun FullScreenColorDialog(sw: ColorSwatchInfo, onDismiss: () -> Unit) {
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
-            usePlatformDefaultWidth = false, // Ekranı tamamen kaplaması için
+            usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false
         )
     ) {
@@ -187,7 +183,7 @@ fun FullScreenColorDialog(sw: ColorSwatchInfo, onDismiss: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(sw.rgb))
-                .clickable { onDismiss() } // Ekrana dokunulunca kapanması için
+                .clickable { onDismiss() }
         )
     }
 }

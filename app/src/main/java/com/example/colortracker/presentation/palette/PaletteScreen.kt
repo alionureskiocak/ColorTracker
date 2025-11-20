@@ -9,41 +9,63 @@ import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import com.example.colortracker.domain.model.ColorSwatchInfo
 import com.example.colortracker.domain.model.FavoriteSwatch
 import com.example.colortracker.presentation.composables.ColorSwatchItem
 import com.example.colortracker.presentation.favorites.FavoriteViewModel
+import com.example.colortracker.presentation.photos.FullScreenColorDialog
 import java.io.File
 
 @Composable
-fun PaletteScreen(navController: NavHostController, viewModel: PaletteViewModel = hiltViewModel()) {
-
+fun PaletteScreen(
+    navController: NavHostController,
+    viewModel: PaletteViewModel = hiltViewModel()
+) {
     val state by viewModel.uiState.collectAsState()
-    val error = state.error
-    val colorEntites = state.colorEntities
     val currentBitmap = state.bitmap
-    val swatches = state.swatches
-    val favoritesViewModel : FavoriteViewModel = hiltViewModel()
+    val favoritesViewModel: FavoriteViewModel = hiltViewModel()
     val favoritesList by favoritesViewModel.favoritesList.collectAsState()
 
+    var fullScreenSwatch by remember { mutableStateOf<ColorSwatchInfo?>(null) }
+
     val context = LocalContext.current
+
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -64,11 +86,12 @@ fun PaletteScreen(navController: NavHostController, viewModel: PaletteViewModel 
     ) { success ->
         if (success) {
             val bitmap = uriToBitmap(context, photoUri)
-            viewModel.updateBitmap(bitmap!!)
-            viewModel.analyzeBitmap(bitmap)
+            bitmap?.let {
+                viewModel.updateBitmap(it)
+                viewModel.analyzeBitmap(it)
+            }
         }
     }
-
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -80,50 +103,272 @@ fun PaletteScreen(navController: NavHostController, viewModel: PaletteViewModel 
         }
     }
 
+
+    val backgroundBrush = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF1A1A2E),
+            Color(0xFF16213E),
+            Color(0xFF0F3460)
+        )
+    )
+
+    if (fullScreenSwatch != null) {
+        FullScreenColorDialog(
+            sw = fullScreenSwatch!!,
+            onDismiss = { fullScreenSwatch = null }
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.TopCenter
-
+            .background(backgroundBrush)
     ) {
-        state.error?.let { Text("Hata: $it", color = Color.Red) }
+
+        AnimatedContent(
+            targetState = currentBitmap,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(600)) togetherWith fadeOut(animationSpec = tween(600))
+            },
+            label = "ScreenTransition"
+        ) { bitmap ->
+            if (bitmap == null) {
+
+                EmptyStateScreen(galleryLauncher, permissionLauncher)
+            } else {
+                ResultScreen(
+                    bitmap = bitmap,
+                    swatches = state.swatches,
+                    favoritesList = favoritesList,
+                    isLoading = state.isLoading,
+                    error = state.error,
+                    navController = navController,
+                    onFavoriteClick = { sw ->
+                        val fs = FavoriteSwatch(
+                            hex = sw.hex,
+                            rgb = sw.rgb,
+                            percentage = sw.percentage,
+                            titleTextColor = sw.titleTextColor,
+                            bodyTextColor = sw.bodyTextColor,
+                            population = sw.population
+                        )
+                        favoritesViewModel.onPress(fs)
+                    },
+                    onFullScreenClick = { sw ->
+                        fullScreenSwatch = sw
+                    },
+                    onBackClick = {
+                        viewModel.resetState()
+                    },
+                    galleryLauncher = galleryLauncher
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun EmptyStateScreen(
+    galleryLauncher: ManagedActivityResultLauncher<String, Uri?>,
+    permissionLauncher: ManagedActivityResultLauncher<String, Boolean>
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .background(
+                    Brush.linearGradient(listOf(Color(0xFFE94560), Color(0xFF0F3460))),
+                    shape = CircleShape
+                )
+                .shadow(10.dp, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.ColorLens,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(60.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "Renk Paleti Oluştur",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+        Text(
+            text = "Bir resim yükleyin ve baskın renkleri keşfedin.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.White.copy(alpha = 0.7f),
+            modifier = Modifier.padding(top = 8.dp)
+        )
+
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // Seçim Butonları
+        ModernButton(
+            text = "Galeriden Seç",
+            icon = Icons.Filled.AddPhotoAlternate,
+            onClick = { galleryLauncher.launch("image/*") }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ModernButton(
+            text = "Fotoğraf Çek",
+            icon = Icons.Filled.CameraAlt,
+            onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
+            isOutlined = true
+        )
+    }
+}
+
+@Composable
+fun ResultScreen(
+    bitmap: Bitmap,
+    swatches: List<ColorSwatchInfo>,
+    favoritesList: List<FavoriteSwatch>,
+    isLoading: Boolean,
+    error: String?,
+    navController: NavHostController,
+    onFavoriteClick: (ColorSwatchInfo) -> Unit,
+    onFullScreenClick: (ColorSwatchInfo) -> Unit,
+    onBackClick: () -> Unit,
+    galleryLauncher: ManagedActivityResultLauncher<String, Uri?>
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(0.45f)
+                .padding(16.dp)
+        ) {
+            // Resim Kartı
+            Card(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .shadow(12.dp, RoundedCornerShape(24.dp)),
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Black)
+            ) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Selected Image",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
 
 
-        if (state.isLoading) {
-            CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(12.dp)
+                    .size(40.dp)
+                    .background(
+                        color = Color.Black.copy(alpha = 0.4f),
+                        shape = CircleShape
+                    )
+                    .border(1.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = "Back",
+                    tint = Color.White
+                )
+            }
+
+
+            SmallFloatingActionButton(
+                onClick = { galleryLauncher.launch("image/*") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Image,
+                    contentDescription = "Change",
+                    tint = Color.White
+                )
+            }
         }
-        else if(currentBitmap==null){
-            ChoiceScreen(galleryLauncher,permissionLauncher)
-        }
-        else{
+
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(0.55f),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            shadowElevation = 16.dp
+        ) {
             Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 24.dp, start = 16.dp, end = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                currentBitmap.let {
-                    Image(bitmap = currentBitmap.asImageBitmap(), contentDescription = null,
-                        modifier = Modifier.size(200.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                }
 
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    modifier = Modifier.padding(top = 16.dp)) {
-                    items(state.swatches) { sw ->
-                        val isFavorite = favoritesList.any{it.hex == sw.hex}
-                        ColorSwatchItem(navController,sw,isFavorite){
-                            val fs = FavoriteSwatch(
-                                hex = sw.hex,
-                                rgb = sw.rgb,
-                                percentage = sw.percentage,
-                                titleTextColor = sw.titleTextColor,
-                                bodyTextColor = sw.bodyTextColor,
-                                population = sw.population
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(Color.Gray.copy(alpha = 0.4f))
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (isLoading) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                } else {
+                    error?.let {
+                        Text("Hata: $it", color = MaterialTheme.colorScheme.error)
+                    }
+
+                    Text(
+                        text = "Palette",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        contentPadding = PaddingValues(bottom = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(swatches) { sw ->
+                            val isFavorite = favoritesList.any { it.hex == sw.hex }
+
+                            ColorSwatchItem(
+                                navController = navController,
+                                sw = sw,
+                                isFavorite = isFavorite,
+                                onAddToFavorites = { onFavoriteClick(sw) },
+                                onFullScreen = { onFullScreenClick(sw) }
                             )
-                            favoritesViewModel.onPress(fs)
                         }
                     }
                 }
@@ -133,22 +378,47 @@ fun PaletteScreen(navController: NavHostController, viewModel: PaletteViewModel 
 }
 
 @Composable
-fun ChoiceScreen(
-    galleryLauncher : ManagedActivityResultLauncher<String, Uri?>,
-    permissionLauncher : ManagedActivityResultLauncher<String, Boolean>
+fun ModernButton(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    isOutlined: Boolean = false
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        Button(onClick = { galleryLauncher.launch("image/*") }) {
-            Text("Galeriden seç")
+    val buttonModifier = Modifier
+        .fillMaxWidth()
+        .height(56.dp)
+        .shadow(if (isOutlined) 0.dp else 8.dp, RoundedCornerShape(16.dp))
+
+    if (isOutlined) {
+        OutlinedButton(
+            onClick = onClick,
+            modifier = buttonModifier,
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(2.dp, Color.White.copy(alpha = 0.5f)),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = Color.White
+            )
+        ) {
+            Icon(icon, contentDescription = null)
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
-        Spacer(Modifier.width(8.dp))
-        Button(onClick = {
-            permissionLauncher.launch(Manifest.permission.CAMERA)
-        }) {
-            Text("Kameradan çek")
+    } else {
+        Button(
+            onClick = onClick,
+            modifier = buttonModifier,
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFE94560)
+            )
+        ) {
+            Icon(icon, contentDescription = null)
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
+
 
 fun uriToBitmap(context: Context, uri: Uri): Bitmap? {
     return try {

@@ -101,10 +101,7 @@ fun SetUpNavigation(navController : NavHostController) {
             ) {
                 composable("MainScreen") { PaletteScreen(navController) }
                 composable("PhotosScreen") { PhotosScreen(navController) }
-                composable("FavoritesScreen") { FavoritesScreen() }
-                //composable(route = "ColorScreen/{rgb}") { backStackEntry ->
-                //    val rgb = backStackEntry.arguments?.getString("rgb")?.toInt() ?: -1
-                //    ColorScreen(color = rgb) }
+                composable("FavoritesScreen") { FavoritesScreen(navController) }
             }
         }
 
