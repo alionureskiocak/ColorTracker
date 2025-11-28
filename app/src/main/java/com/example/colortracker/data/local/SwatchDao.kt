@@ -18,7 +18,7 @@ interface SwatchDao {
     suspend fun deleteFavorites(colorEntity: ColorEntity)
 
     @Query("SELECT * FROM ColorEntity")
-    suspend fun getAllSwatch() : List<ColorEntity>
+    fun getAllSwatch() : Flow<List<ColorEntity>>
 
     @Query("DELETE  FROM ColorEntity")
     suspend fun clearAll()

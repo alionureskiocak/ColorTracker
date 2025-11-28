@@ -59,7 +59,11 @@ class PaletteViewModel @Inject constructor(
         }
     }
 
-
+    fun insertSwatch(colorEntity: ColorEntity){
+        viewModelScope.launch {
+            repository.insertSwatch(colorEntity)
+        }
+    }
 
     fun deleteSwatch(colorEntity: ColorEntity){
         viewModelScope.launch {
@@ -76,14 +80,14 @@ class PaletteViewModel @Inject constructor(
 
     fun getAllSwatch(){
         viewModelScope.launch {
-            val colorEntities = repository.getAllSwatch()
-            _uiState.update {
-                it.copy(colorEntities = colorEntities)
+            repository.getAllSwatch().collect { new ->
+                _uiState.update {
+                    it.copy(colorEntities = new)
+                }
             }
+
         }
-
     }
-
     fun updateBitmap(bitmap : Bitmap){
         viewModelScope.launch {
             _uiState.update {
@@ -96,7 +100,7 @@ class PaletteViewModel @Inject constructor(
     fun resetState() {
         _uiState.update {
             it.copy(
-                bitmap = null,        // null olması EmptyStateScreen'i tetikler
+                bitmap = null,
                 swatches = emptyList(),
                 error = null,
                 isLoading = false

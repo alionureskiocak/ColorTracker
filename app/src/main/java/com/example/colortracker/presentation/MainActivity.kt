@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -66,7 +67,9 @@ fun SetUpNavigation(navController : NavHostController) {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 var currentRoute = navBackStackEntry?.destination?.route
                 if (currentRoute!="ColorScreen"){
-                    NavigationBar {
+                    NavigationBar(
+                        containerColor = Color.Black
+                    ) {
                         items.forEach { item ->
                             NavigationBarItem(
                                 selected = currentRoute == item.route,

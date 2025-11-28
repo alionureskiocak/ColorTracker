@@ -99,7 +99,7 @@ fun PaletteScreen(
         if (isGranted) {
             cameraLauncher.launch(photoUri)
         } else {
-            Toast.makeText(context, "Kamera izni gerekli.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Need Camera Permission.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -201,13 +201,13 @@ fun EmptyStateScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         Text(
-            text = "Renk Paleti Oluştur",
+            text = "Create a Color Palette",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
         Text(
-            text = "Bir resim yükleyin ve baskın renkleri keşfedin.",
+            text = "Upload an Image explore the dominant colors.",
             style = MaterialTheme.typography.bodyLarge,
             color = Color.White.copy(alpha = 0.7f),
             modifier = Modifier.padding(top = 8.dp)
@@ -215,9 +215,9 @@ fun EmptyStateScreen(
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // Seçim Butonları
+
         ModernButton(
-            text = "Galeriden Seç",
+            text = "Choose From Gallery",
             icon = Icons.Filled.AddPhotoAlternate,
             onClick = { galleryLauncher.launch("image/*") }
         )
@@ -225,7 +225,7 @@ fun EmptyStateScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         ModernButton(
-            text = "Fotoğraf Çek",
+            text = "Take a Photo",
             icon = Icons.Filled.CameraAlt,
             onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
             isOutlined = true
@@ -259,7 +259,7 @@ fun ResultScreen(
                 .weight(0.45f)
                 .padding(16.dp)
         ) {
-            // Resim Kartı
+
             Card(
                 modifier = Modifier
                     .fillMaxSize()
@@ -342,7 +342,7 @@ fun ResultScreen(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 } else {
                     error?.let {
-                        Text("Hata: $it", color = MaterialTheme.colorScheme.error)
+                        Text("Error: $it", color = MaterialTheme.colorScheme.error)
                     }
 
                     Text(
@@ -366,7 +366,9 @@ fun ResultScreen(
                                 navController = navController,
                                 sw = sw,
                                 isFavorite = isFavorite,
+                                isFavoriteScreen = false,
                                 onAddToFavorites = { onFavoriteClick(sw) },
+                                showCoverage = true,
                                 onFullScreen = { onFullScreenClick(sw) }
                             )
                         }

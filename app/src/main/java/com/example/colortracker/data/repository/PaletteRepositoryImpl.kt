@@ -61,9 +61,7 @@ class PaletteRepositoryImpl @Inject constructor(
         dao.deleteFavorites(colorEntity)
     }
 
-    override suspend fun getAllSwatch(): List<ColorEntity> {
-        return dao.getAllSwatch()
-    }
+    override suspend fun getAllSwatch() = dao.getAllSwatch()
 
     override suspend fun clearAll() {
        dao.clearAll()

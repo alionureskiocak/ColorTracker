@@ -14,7 +14,7 @@ interface PaletteRepository {
 
     suspend fun deleteSwatch(colorEntity: ColorEntity)
 
-    suspend fun getAllSwatch() : List<ColorEntity>
+    suspend fun getAllSwatch() :Flow<List<ColorEntity>>
 
     suspend fun clearAll()
 

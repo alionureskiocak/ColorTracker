@@ -26,10 +26,12 @@ class PhotosViewModel @Inject constructor(
 
     fun getAllEntities(){
         viewModelScope.launch {
-            val colorEntities = repository.getAllSwatch()
-            _uiState.update {
-                it.copy(colorEntities = colorEntities)
+            repository.getAllSwatch().collect { new ->
+                _uiState.update {
+                    it.copy(colorEntities = new)
+                }
             }
+
         }
     }
 
