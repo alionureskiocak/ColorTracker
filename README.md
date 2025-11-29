@@ -22,7 +22,7 @@ Color Tracker is an Android app that extracts colors from your photos and displa
 <h2 style="font-family:Arial, sans-serif;">🚀 How to Use</h2>
 
 <ol style="font-family:Arial, sans-serif; font-size:14px;">
-<li>Clone the repo: <code>git clone https://github.com/yourusername/color-tracker.git</code></li>
+<li>Clone the repo: <code>git clone https://github.com/alionureskiocak/color-tracker.git</code></li>
 <li>Open in <b>Android Studio</b>.</li>
 <li>Build and run on an emulator or real device.</li>
 <li>Select a photo or take a picture with your camera.</li>
